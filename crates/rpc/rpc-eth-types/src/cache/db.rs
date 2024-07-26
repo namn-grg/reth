@@ -29,6 +29,14 @@ impl<'a> reth_provider::StateRootProvider for StateProviderTraitObjWrapper<'a> {
     ) -> reth_errors::ProviderResult<(B256, reth_trie::updates::TrieUpdates)> {
         self.0.hashed_state_root_with_updates(hashed_state)
     }
+
+    fn hashed_state_root_from_intermediate(
+        &self,
+        trie_nodes: &reth_trie::updates::TrieUpdates,
+        hashed_state: &reth_trie::HashedPostState,
+    ) -> reth_errors::ProviderResult<B256> {
+        self.0.hashed_state_root_from_intermediate(trie_nodes, hashed_state)
+    }
 }
 
 impl<'a> reth_provider::StateProofProvider for StateProviderTraitObjWrapper<'a> {

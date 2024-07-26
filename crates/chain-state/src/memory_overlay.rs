@@ -14,6 +14,8 @@ pub struct MemoryOverlayStateProvider {
     in_memory: Vec<ExecutedBlock>,
     /// The collection of hashed state from in-memory blocks.
     hashed_post_state: HashedPostState,
+    /// The collection of aggregated in-memory trie updates.
+    trie_updates: TrieUpdates,
     /// Historical state provider for state lookups that are not found in in-memory blocks.
     historical: Box<dyn StateProvider>,
 }
@@ -22,10 +24,12 @@ impl MemoryOverlayStateProvider {
     /// Create new memory overlay state provider.
     pub fn new(in_memory: Vec<ExecutedBlock>, historical: Box<dyn StateProvider>) -> Self {
         let mut hashed_post_state = HashedPostState::default();
+        let mut trie_updates = TrieUpdates::default();
         for block in &in_memory {
             hashed_post_state.extend(block.hashed_state.as_ref().clone());
+            trie_updates.extend(block.trie.as_ref().clone());
         }
-        Self { in_memory, hashed_post_state, historical }
+        Self { in_memory, hashed_post_state, trie_updates, historical }
     }
 }
 
@@ -75,11 +79,10 @@ impl AccountReader for MemoryOverlayStateProvider {
 }
 
 impl StateRootProvider for MemoryOverlayStateProvider {
-    // TODO: Currently this does not reuse available in-memory trie nodes.
     fn hashed_state_root(&self, hashed_state: &HashedPostState) -> ProviderResult<B256> {
         let mut state = self.hashed_post_state.clone();
         state.extend(hashed_state.clone());
-        self.historical.hashed_state_root(&state)
+        self.historical.hashed_state_root_from_intermediate(&self.trie_updates, &state)
     }
 
     // TODO: Currently this does not reuse available in-memory trie nodes.
@@ -90,6 +93,18 @@ impl StateRootProvider for MemoryOverlayStateProvider {
         let mut state = self.hashed_post_state.clone();
         state.extend(hashed_state.clone());
         self.historical.hashed_state_root_with_updates(&state)
+    }
+
+    fn hashed_state_root_from_intermediate(
+        &self,
+        trie_nodes: &TrieUpdates,
+        hashed_state: &HashedPostState,
+    ) -> ProviderResult<B256> {
+        let mut nodes = self.trie_updates.clone();
+        nodes.extend(trie_nodes.clone());
+        let mut state = self.hashed_post_state.clone();
+        state.extend(hashed_state.clone());
+        self.historical.hashed_state_root_from_intermediate(&nodes, &state)
     }
 }
 

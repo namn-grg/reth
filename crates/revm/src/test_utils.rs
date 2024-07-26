@@ -78,6 +78,14 @@ impl StateRootProvider for StateProviderTest {
     ) -> ProviderResult<(B256, TrieUpdates)> {
         unimplemented!("state root computation is not supported")
     }
+
+    fn hashed_state_root_from_intermediate(
+        &self,
+        _trie_nodes: &TrieUpdates,
+        _hashed_state: &HashedPostState,
+    ) -> ProviderResult<B256> {
+        unimplemented!("state root computation is not supported")
+    }
 }
 
 impl StateProofProvider for StateProviderTest {

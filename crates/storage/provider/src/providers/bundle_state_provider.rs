@@ -96,6 +96,14 @@ impl<SP: StateProvider, EDP: ExecutionDataProvider> StateRootProvider
         state.extend(hashed_state.clone());
         self.state_provider.hashed_state_root_with_updates(&state)
     }
+
+    fn hashed_state_root_from_intermediate(
+        &self,
+        _trie_nodes: &TrieUpdates,
+        _hashed_state: &HashedPostState,
+    ) -> ProviderResult<B256> {
+        unimplemented!()
+    }
 }
 
 impl<SP: StateProvider, EDP: ExecutionDataProvider> StateProofProvider

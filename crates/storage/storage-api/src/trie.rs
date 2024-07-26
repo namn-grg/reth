@@ -37,6 +37,14 @@ pub trait StateRootProvider: Send + Sync {
         &self,
         hashed_state: &HashedPostState,
     ) -> ProviderResult<(B256, TrieUpdates)>;
+
+    /// Returns the state root of the `HashedPostState` on top of the current state.
+    /// Allows passing in intermediate nodes for re-use during computation.
+    fn hashed_state_root_from_intermediate(
+        &self,
+        trie_nodes: &TrieUpdates,
+        hashed_state: &HashedPostState,
+    ) -> ProviderResult<B256>;
 }
 
 /// A type that can generate state proof on top of a given post state.

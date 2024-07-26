@@ -322,6 +322,14 @@ impl StateRootProvider for NoopProvider {
     ) -> ProviderResult<(B256, TrieUpdates)> {
         Ok((B256::default(), TrieUpdates::default()))
     }
+
+    fn hashed_state_root_from_intermediate(
+        &self,
+        _trie_nodes: &TrieUpdates,
+        _hashed_state: &HashedPostState,
+    ) -> ProviderResult<B256> {
+        Ok(B256::default())
+    }
 }
 
 impl StateProofProvider for NoopProvider {
