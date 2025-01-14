@@ -2,7 +2,9 @@ use alloy_consensus::constants::KECCAK_EMPTY;
 use alloy_genesis::GenesisAccount;
 use alloy_primitives::{keccak256, Bytes, B256, U256};
 use alloy_trie::TrieAccount;
+use bytes::Buf;
 use derive_more::Deref;
+use reth_codecs::BufMutWritable;
 use revm_primitives::{AccountInfo, Bytecode as RevmBytecode, BytecodeDecodeError};
 
 #[cfg(any(test, feature = "reth-codec"))]
@@ -103,7 +105,7 @@ impl Bytecode {
 impl reth_codecs::Compact for Bytecode {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: reth_codecs::BufMutWritable,
     {
         use compact_ids::{
             EIP7702_BYTECODE_ID, EOF_BYTECODE_ID, LEGACY_ANALYZED_BYTECODE_ID,
@@ -116,27 +118,27 @@ impl reth_codecs::Compact for Bytecode {
             RevmBytecode::Eof(eof) => eof.raw(),
             RevmBytecode::Eip7702(eip7702) => eip7702.raw(),
         };
-        buf.put_u32(bytecode.len() as u32);
+        buf.put_slice(&(bytecode.len() as u32).to_be_bytes());
         buf.put_slice(bytecode.as_ref());
         let len = match &self.0 {
             RevmBytecode::LegacyRaw(_) => {
-                buf.put_u8(LEGACY_RAW_BYTECODE_ID);
+                buf.put_slice(&[LEGACY_RAW_BYTECODE_ID]);
                 1
             }
             // [`REMOVED_BYTECODE_ID`] has been removed.
             RevmBytecode::LegacyAnalyzed(analyzed) => {
-                buf.put_u8(LEGACY_ANALYZED_BYTECODE_ID);
-                buf.put_u64(analyzed.original_len() as u64);
+                buf.put_slice(&[LEGACY_ANALYZED_BYTECODE_ID]);
+                buf.put_slice(&(analyzed.original_len() as u64).to_be_bytes());
                 let map = analyzed.jump_table().as_slice();
                 buf.put_slice(map);
                 1 + 8 + map.len()
             }
             RevmBytecode::Eof(_) => {
-                buf.put_u8(EOF_BYTECODE_ID);
+                buf.put_slice(&[EOF_BYTECODE_ID]);
                 1
             }
             RevmBytecode::Eip7702(_) => {
-                buf.put_u8(EIP7702_BYTECODE_ID);
+                buf.put_slice(&[EIP7702_BYTECODE_ID]);
                 1
             }
         };

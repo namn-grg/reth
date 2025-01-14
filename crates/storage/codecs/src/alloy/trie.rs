@@ -1,6 +1,6 @@
 //! Native Compact codec impl for alloy-trie types.
 
-use crate::Compact;
+use crate::{BufMutWritable, Compact};
 use alloc::vec::Vec;
 use alloy_primitives::B256;
 use alloy_trie::{
@@ -18,7 +18,7 @@ const HASH_BUILDER_TYPE_BYTES: u8 = 1;
 impl Compact for HashBuilderValue {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         match self.as_ref() {
             HashBuilderValueRef::Hash(hash) => {
@@ -54,7 +54,7 @@ impl Compact for HashBuilderValue {
 impl Compact for BranchNodeCompact {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         let mut buf_size = 0;
 
@@ -111,7 +111,7 @@ impl Compact for BranchNodeCompact {
 impl Compact for TrieMask {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         buf.put_u16(self.get());
         2

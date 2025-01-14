@@ -67,9 +67,9 @@ pub fn generate_from_to(
             #[test_fuzz::test_fuzz]
             fn #fuzz(obj: #ident)  {
                 use #reth_codecs::Compact;
-                let mut buf = vec![];
+                let mut buf = #reth_codecs::WritableBuffer::new();
                 let len = obj.clone().to_compact(&mut buf);
-                let (same_obj, buf) = #ident::from_compact(buf.as_ref(), len);
+                let (same_obj, buf) = #ident::from_compact(buf.written_slice(), len);
                 assert_eq!(obj, same_obj);
             }
 
@@ -86,7 +86,7 @@ pub fn generate_from_to(
         #fuzz_tests
 
         #impl_compact {
-            fn to_compact<B>(&self, buf: &mut B) -> usize where B: #reth_codecs::__private::bytes::BufMut + AsMut<[u8]> {
+            fn to_compact<B>(&self, buf: &mut B) -> usize where B: #reth_codecs::BufMutWritable {
                 let mut flags = #flags::default();
                 let mut total_length = 0;
                 #(#to_compact)*

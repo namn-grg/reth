@@ -34,7 +34,7 @@ impl From<(B256, U256)> for StorageEntry {
 impl reth_codecs::Compact for StorageEntry {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: reth_codecs::BufMutWritable,
     {
         // for now put full bytes and later compress it.
         buf.put_slice(&self.key[..]);

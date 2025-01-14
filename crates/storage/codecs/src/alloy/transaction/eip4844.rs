@@ -1,6 +1,6 @@
 //! Compact implementation for [`AlloyTxEip4844`]
 
-use crate::{Compact, CompactPlaceholder};
+use crate::{BufMutWritable, Compact, CompactPlaceholder};
 use alloc::vec::Vec;
 use alloy_consensus::TxEip4844 as AlloyTxEip4844;
 use alloy_eips::eip2930::AccessList;
@@ -48,7 +48,7 @@ pub(crate) struct TxEip4844 {
 impl Compact for AlloyTxEip4844 {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         let tx = TxEip4844 {
             chain_id: self.chain_id,

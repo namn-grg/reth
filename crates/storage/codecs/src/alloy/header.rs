@@ -1,6 +1,6 @@
 //! Compact implementation for [`AlloyHeader`]
 
-use crate::Compact;
+use crate::{BufMutWritable, Compact};
 use alloy_consensus::Header as AlloyHeader;
 use alloy_primitives::{Address, BlockNumber, Bloom, Bytes, B256, U256};
 
@@ -76,7 +76,7 @@ impl HeaderExt {
 impl Compact for AlloyHeader {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         let extra_fields = HeaderExt { requests_hash: self.requests_hash };
 
@@ -188,7 +188,7 @@ mod tests {
     #[test]
     fn test_extra_fields() {
         let mut header = HOLESKY_BLOCK;
-        header.extra_fields = Some(HeaderExt { requests_hash: Some(B256::random())});
+        header.extra_fields = Some(HeaderExt { requests_hash: Some(B256::random()) });
 
         let mut encoded_header = vec![];
         let len = header.to_compact(&mut encoded_header);

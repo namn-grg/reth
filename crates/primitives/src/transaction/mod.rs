@@ -444,90 +444,55 @@ impl InMemorySize for Transaction {
     }
 }
 
-#[cfg(any(test, feature = "reth-codec"))]
-impl reth_codecs::Compact for Transaction {
-    // Serializes the TxType to the buffer if necessary, returning 2 bits of the type as an
-    // identifier instead of the length.
+impl Compact for Transaction {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         let identifier = self.tx_type().to_compact(buf);
         match self {
-            Self::Legacy(tx) => {
+            Transaction::Legacy(tx) => {
                 tx.to_compact(buf);
             }
-            Self::Eip2930(tx) => {
+            Transaction::Eip2930(tx) => {
                 tx.to_compact(buf);
             }
-            Self::Eip1559(tx) => {
+            Transaction::Eip1559(tx) => {
                 tx.to_compact(buf);
             }
-            Self::Eip4844(tx) => {
+            Transaction::Eip4844(tx) => {
                 tx.to_compact(buf);
             }
-            Self::Eip7702(tx) => {
-                tx.to_compact(buf);
-            }
-            #[cfg(feature = "optimism")]
-            Self::Deposit(tx) => {
+            Transaction::Deposit(tx) => {
                 tx.to_compact(buf);
             }
         }
         identifier
     }
 
-    // For backwards compatibility purposes, only 2 bits of the type are encoded in the identifier
-    // parameter. In the case of a [`COMPACT_EXTENDED_IDENTIFIER_FLAG`], the full transaction type
-    // is read from the buffer as a single byte.
-    //
-    // # Panics
-    //
-    // A panic will be triggered if an identifier larger than 3 is passed from the database. For
-    // optimism a identifier with value [`DEPOSIT_TX_TYPE_ID`] is allowed.
-    fn from_compact(mut buf: &[u8], identifier: usize) -> (Self, &[u8]) {
-        use bytes::Buf;
-
-        match identifier {
-            reth_codecs::txtype::COMPACT_IDENTIFIER_LEGACY => {
-                let (tx, buf) = TxLegacy::from_compact(buf, buf.len());
+    fn from_compact(buf: &[u8], len: usize) -> (Self, &[u8]) {
+        let (tx_type, buf) = TxType::from_compact(buf, len);
+        match tx_type {
+            TxType::Legacy => {
+                let (tx, buf) = LegacyTransaction::from_compact(buf, buf.len());
                 (Self::Legacy(tx), buf)
             }
-            reth_codecs::txtype::COMPACT_IDENTIFIER_EIP2930 => {
-                let (tx, buf) = TxEip2930::from_compact(buf, buf.len());
+            TxType::Eip2930 => {
+                let (tx, buf) = Eip2930Transaction::from_compact(buf, buf.len());
                 (Self::Eip2930(tx), buf)
             }
-            reth_codecs::txtype::COMPACT_IDENTIFIER_EIP1559 => {
-                let (tx, buf) = TxEip1559::from_compact(buf, buf.len());
+            TxType::Eip1559 => {
+                let (tx, buf) = Eip1559Transaction::from_compact(buf, buf.len());
                 (Self::Eip1559(tx), buf)
             }
-            reth_codecs::txtype::COMPACT_EXTENDED_IDENTIFIER_FLAG => {
-                // An identifier of 3 indicates that the transaction type did not fit into
-                // the backwards compatible 2 bit identifier, their transaction types are
-                // larger than 2 bits (eg. 4844 and Deposit Transactions). In this case,
-                // we need to read the concrete transaction type from the buffer by
-                // reading the full 8 bits (single byte) and match on this transaction type.
-                let identifier = buf.get_u8();
-                match identifier {
-                    alloy_consensus::constants::EIP4844_TX_TYPE_ID => {
-                        let (tx, buf) = TxEip4844::from_compact(buf, buf.len());
-                        (Self::Eip4844(tx), buf)
-                    }
-                    alloy_consensus::constants::EIP7702_TX_TYPE_ID => {
-                        let (tx, buf) = TxEip7702::from_compact(buf, buf.len());
-                        (Self::Eip7702(tx), buf)
-                    }
-                    #[cfg(feature = "optimism")]
-                    op_alloy_consensus::DEPOSIT_TX_TYPE_ID => {
-                        let (tx, buf) = TxDeposit::from_compact(buf, buf.len());
-                        (Self::Deposit(tx), buf)
-                    }
-                    _ => unreachable!(
-                        "Junk data in database: unknown Transaction variant: {identifier}"
-                    ),
-                }
+            TxType::Eip4844 => {
+                let (tx, buf) = Eip4844Transaction::from_compact(buf, buf.len());
+                (Self::Eip4844(tx), buf)
             }
-            _ => unreachable!("Junk data in database: unknown Transaction variant: {identifier}"),
+            TxType::Deposit => {
+                let (tx, buf) = DepositTransaction::from_compact(buf, buf.len());
+                (Self::Deposit(tx), buf)
+            }
         }
     }
 }

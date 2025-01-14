@@ -1,6 +1,6 @@
 //! Compact implementation for [`AlloyGenesisAccount`]
 
-use crate::Compact;
+use crate::{BufMutWritable, Compact};
 use alloc::vec::Vec;
 use alloy_genesis::GenesisAccount as AlloyGenesisAccount;
 use alloy_primitives::{Bytes, B256, U256};
@@ -74,7 +74,7 @@ pub(crate) struct StorageEntry {
 impl Compact for AlloyGenesisAccount {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         let account = GenesisAccountRef {
             nonce: self.nonce,

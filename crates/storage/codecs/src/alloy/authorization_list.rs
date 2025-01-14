@@ -1,6 +1,6 @@
 //! Compact implementation for [`AlloyAuthorization`]
 
-use crate::Compact;
+use crate::{BufMutWritable, Compact};
 use alloy_eips::eip7702::{Authorization as AlloyAuthorization, SignedAuthorization};
 use alloy_primitives::{Address, U256};
 use bytes::Buf;
@@ -27,7 +27,7 @@ pub(crate) struct Authorization {
 impl Compact for AlloyAuthorization {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         let authorization =
             Authorization { chain_id: self.chain_id, address: self.address, nonce: self.nonce() };
@@ -48,7 +48,7 @@ impl Compact for AlloyAuthorization {
 impl Compact for SignedAuthorization {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         buf.put_u8(self.y_parity());
         buf.put_slice(self.r().as_le_slice());
@@ -84,13 +84,11 @@ mod tests {
             address: address!("dac17f958d2ee523a2206206994597c13d831ec7"),
             nonce: 1,
         }
-        .into_signed(
-            alloy_primitives::PrimitiveSignature::new(
-                b256!("1fd474b1f9404c0c5df43b7620119ffbc3a1c3f942c73b6e14e9f55255ed9b1d").into(),
-                b256!("29aca24813279a901ec13b5f7bb53385fa1fc627b946592221417ff74a49600d").into(),
-                false,
-            )
-        );
+        .into_signed(alloy_primitives::PrimitiveSignature::new(
+            b256!("1fd474b1f9404c0c5df43b7620119ffbc3a1c3f942c73b6e14e9f55255ed9b1d").into(),
+            b256!("29aca24813279a901ec13b5f7bb53385fa1fc627b946592221417ff74a49600d").into(),
+            false,
+        ));
         let mut compacted_authorization = Vec::<u8>::new();
         let len = authorization.to_compact(&mut compacted_authorization);
         let (decoded_authorization, _) =

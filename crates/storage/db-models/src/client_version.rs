@@ -1,6 +1,6 @@
 //! Client version model.
 
-use reth_codecs::{add_arbitrary_tests, Compact};
+use reth_codecs::{add_arbitrary_tests, BufMutWritable, Compact};
 use serde::{Deserialize, Serialize};
 
 /// Client version that accessed the database.
@@ -26,18 +26,19 @@ impl ClientVersion {
 impl Compact for ClientVersion {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
-        self.version.to_compact(buf);
-        self.git_sha.to_compact(buf);
-        self.build_timestamp.to_compact(buf)
+        let mut total_length = 0;
+        total_length += self.version.to_compact(buf);
+        total_length += self.git_sha.to_compact(buf);
+        total_length += self.build_timestamp.to_compact(buf);
+        total_length
     }
 
     fn from_compact(buf: &[u8], len: usize) -> (Self, &[u8]) {
         let (version, buf) = String::from_compact(buf, len);
-        let (git_sha, buf) = String::from_compact(buf, len);
-        let (build_timestamp, buf) = String::from_compact(buf, len);
-        let client_version = Self { version, git_sha, build_timestamp };
-        (client_version, buf)
+        let (git_sha, buf) = String::from_compact(buf, buf.len());
+        let (build_timestamp, buf) = u64::from_compact(buf, buf.len());
+        (Self { version, git_sha, build_timestamp }, buf)
     }
 }

@@ -1,6 +1,6 @@
 //! Native Compact codec impl for primitive alloy [`TxKind`].
 
-use crate::Compact;
+use crate::{BufMutWritable, Compact};
 use alloy_primitives::{Address, TxKind};
 
 /// Identifier for [`TxKind::Create`]
@@ -12,7 +12,7 @@ const TX_KIND_TYPE_CALL: usize = 1;
 impl Compact for TxKind {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         match self {
             Self::Create => TX_KIND_TYPE_CREATE,

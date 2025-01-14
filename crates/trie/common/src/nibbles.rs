@@ -206,3 +206,21 @@ mod tests {
         assert_eq!(subkey, deserialized);
     }
 }
+
+impl Compact for Nibbles {
+    fn to_compact<B>(&self, buf: &mut B) -> usize
+    where
+        B: BufMutWritable,
+    {
+        let mut total_length = 0;
+        total_length += self.data.to_compact(buf);
+        total_length += self.offset.to_compact(buf);
+        total_length
+    }
+
+    fn from_compact(buf: &[u8], len: usize) -> (Self, &[u8]) {
+        let (data, buf) = Vec::<u8>::from_compact(buf, len);
+        let (offset, buf) = usize::from_compact(buf, buf.len());
+        (Self { data, offset }, buf)
+    }
+}

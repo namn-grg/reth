@@ -1,12 +1,18 @@
 //! Compact implementation for [`AlloyTxDeposit`]
 
+use crate::{
+    generate_tests,
+    txtype::{
+        COMPACT_EXTENDED_IDENTIFIER_FLAG, COMPACT_IDENTIFIER_EIP1559, COMPACT_IDENTIFIER_EIP2930,
+        COMPACT_IDENTIFIER_LEGACY,
+    },
+    BufMutWritable, Compact,
+};
 use alloy_consensus::constants::EIP7702_TX_TYPE_ID;
-use crate::Compact;
 use alloy_primitives::{Address, Bytes, TxKind, B256, U256};
+use bytes::Buf;
 use op_alloy_consensus::{OpTxType, OpTypedTransaction, TxDeposit as AlloyTxDeposit};
 use reth_codecs_derive::add_arbitrary_tests;
-use crate::txtype::{COMPACT_EXTENDED_IDENTIFIER_FLAG, COMPACT_IDENTIFIER_EIP1559, COMPACT_IDENTIFIER_EIP2930, COMPACT_IDENTIFIER_LEGACY};
-use crate::generate_tests;
 
 /// Deposit transactions, also known as deposits are initiated on L1, and executed on L2.
 ///
@@ -38,9 +44,9 @@ pub(crate) struct TxDeposit {
 impl Compact for AlloyTxDeposit {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
-        let tx = TxDeposit {
+        let tx = AlloyTxDeposit {
             source_hash: self.source_hash,
             from: self.from,
             to: self.to,
@@ -54,7 +60,7 @@ impl Compact for AlloyTxDeposit {
     }
 
     fn from_compact(buf: &[u8], len: usize) -> (Self, &[u8]) {
-        let (tx, _) = TxDeposit::from_compact(buf, len);
+        let (tx, _) = AlloyTxDeposit::from_compact(buf, len);
         let alloy_tx = Self {
             source_hash: tx.source_hash,
             from: tx.from,
@@ -69,14 +75,11 @@ impl Compact for AlloyTxDeposit {
     }
 }
 
-
-impl crate::Compact for OpTxType {
+impl Compact for OpTxType {
     fn to_compact<B>(&self, buf: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
-        use crate::txtype::*;
-
         match self {
             Self::Legacy => COMPACT_IDENTIFIER_LEGACY,
             Self::Eip2930 => COMPACT_IDENTIFIER_EIP2930,
@@ -96,7 +99,6 @@ impl crate::Compact for OpTxType {
     // parameter. In the case of a [`COMPACT_EXTENDED_IDENTIFIER_FLAG`], the full transaction type
     // is read from the buffer as a single byte.
     fn from_compact(mut buf: &[u8], identifier: usize) -> (Self, &[u8]) {
-        use bytes::Buf;
         (
             match identifier {
                 COMPACT_IDENTIFIER_LEGACY => Self::Legacy,
@@ -120,7 +122,7 @@ impl crate::Compact for OpTxType {
 impl Compact for OpTypedTransaction {
     fn to_compact<B>(&self, out: &mut B) -> usize
     where
-        B: bytes::BufMut + AsMut<[u8]>,
+        B: BufMutWritable,
     {
         let identifier = self.tx_type().to_compact(out);
         match self {
